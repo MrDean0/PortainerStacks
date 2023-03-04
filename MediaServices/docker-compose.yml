@@ -56,9 +56,7 @@ services:
     container_name: jellyfin
     env_file:
     - stack.env
-    environment:
-    - PUID=1000
-    - PGID=1000
+
     volumes:
     - jellyfin_config:/config
     - sonarr_data:/tv
@@ -77,8 +75,8 @@ services:
     #ports:
     #- 5055:5055
     volumes:
-    #- jellyseerr_config:/app/config
-    - /pool_raid0/docker/config/jellyseerr:/app/config
+    - jellyseerr_config:/app/config
+    #- /pool_raid0/docker/config/jellyseerr:/app/config
     restart: unless-stopped
 volumes:
   jackett_config:
