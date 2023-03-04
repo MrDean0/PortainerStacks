@@ -1,0 +1,35 @@
+version: "3.1"
+volumes:
+  nginx_config:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /pool_raid0/docker/config/nginx
+  nginx_data:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /pool_raid0/docker/data/nginx
+services:
+  ngnix:
+    container_name: ngnix
+    image: 'jc21/nginx-proxy-manager:latest'
+    restart: unless-stopped
+    ports:
+    - '80:80'
+    - '81:81'
+    - '443:443'
+    volumes:
+    - nginx_config:/data
+    - nginx_data:/etc/letsencrypt
+    networks:
+    - media-services_default
+    - network-managment_default
+networks:
+  media-services_default:
+    external: true  
+  network-managment_default:
+    external: true
+ 
