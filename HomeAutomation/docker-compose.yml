@@ -2,7 +2,7 @@ version: "3.8"
 services:
   home-assistant:
     container_name: home-assistant
-    env_file: ../stack.env
+    env_file: .env
     image: homeassistant/home-assistant:2022.5.4
     restart: always
     volumes:
