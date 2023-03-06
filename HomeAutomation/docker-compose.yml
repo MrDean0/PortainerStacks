@@ -7,7 +7,7 @@ services:
     image: homeassistant/home-assistant:2022.5.4
     restart: always
     volumes:
-      - home-assistant_Config:/config
+      - home-assistant_config:/config
       - home-assistant_data:/media
     # depends_on:
     #   - postgres
