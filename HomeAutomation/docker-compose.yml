@@ -1,0 +1,131 @@
+version: "2.1"
+services:
+  home-assistant:
+    container_name: home-assistant
+    image: homeassistant/home-assistant:2022.5.4
+    restart: always
+    networks:
+      - localnet
+    volumes:
+      - /c/local-docker/home-assistant/config:/config
+      - /c/local-docker/home-assistant/media:/media
+    depends_on:
+      - mosquitto
+    ports:
+      - 8123:8123
+      - 1400:1400
+    environment:
+      TZ: "Australia/Brisbane"
+
+  postgres:
+    container_name: postgres
+    image: postgres:12.6
+    restart: always
+    networks:
+      - localnet
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_DB: homeassistant
+      POSTGRES_USER: ha_user
+      POSTGRES_PASSWORD: CrazyStr0ngPa$$word
+
+  nodered:
+    container_name: nodered
+    image: nodered/node-red
+    restart: always
+    networks:
+      - localnet
+    ports:
+      - 1880:1880
+    volumes:
+      - /c/local-docker/home-assistant/nodered:/data
+    depends_on:
+      - home-assistant
+      - mosquitto
+    environment:
+      TZ: "Australia/Brisbane"
+
+  mosquitto:
+    container_name: mosquitto
+    image: eclipse-mosquitto
+    restart: always
+    networks:
+      - localnet
+    ports:
+      - 1883:1883
+      - 1884:1884
+    volumes:
+      - /c/local-docker/home-assistant/mosquitto/config:/mosquitto/config
+      - /c/local-docker/home-assistant/mosquitto/data:/mosquitto/data
+      - /c/local-docker/home-assistant/mosquitto/log:/mosquitto/log
+    environment:
+      TZ: "Australia/Brisbane"
+
+  tasmoadmin:
+    container_name: tasmoadmin
+    image: ghcr.io/tasmoadmin/tasmoadmin:v1.8.0
+    restart: always
+    networks:
+      - localnet
+    ports:
+      - 8124:80
+    volumes:
+      - /c/local-docker/home-assistant/tasmoadmin:/data/tasmoadmin
+
+  chrony:
+    container_name: chrony
+    image: cturra/ntp
+    restart: always
+    networks:
+      - localnet
+    environment:
+      - NTP_SERVERS=time.windows.com
+    ports:
+      - 123:123
+
+  influxdb:
+    container_name: influxdb
+    image: influxdb:latest
+    restart: always
+    networks:
+      - localnet
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - INFLUXDB_DB=home_assistant
+      - DOCKER_INFLUXDB_INIT_USERNAME=influx_user
+      - DOCKER_INFLUXDB_INIT_PASSWORD=CrazyStr0ngPa$$word
+      - DOCKER_INFLUXDB_INIT_ORG=ha-org
+      - DOCKER_INFLUXDB_INIT_BUCKET=ha-bucket
+    ports:
+      - 8086:8086
+    volumes:
+      - /c/local-docker/home-assistant/influxdb:/var/lib/influxdb2
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:latest
+    restart: always
+    networks:
+      - localnet
+    depends_on:
+      - influxdb
+    environment:
+      - GF_SECURITY_ADMIN_USER=grafana_user
+      - GF_SECURITY_ADMIN_PASSWORD=CrazyStr0ngPa$$word
+    ports:
+      - 8125:3000
+    volumes:
+      - /c/local-docker/home-assistant/grafana:/var/lib/grafana
+
+networks:
+  localnet:
+    driver: bridge
+
+volumes:
+  unifi_config:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /pool_raid0/docker/config/unifi/config
