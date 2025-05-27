@@ -1,0 +1,69 @@
+services:
+  #https://github.com/rustdesk/rustdesk-server
+  hbbs:
+    container_name: hbbs
+    image: rustdesk/rustdesk-server:latest
+    command: hbbs
+    env_file:
+      - stack.env
+    #this is done to mitigate seemingly a feature issue with portainer stacks, list all envs to use for the container belowRUST_LOG
+    #https://github.com/portainer/portainer/issues/10491
+    # environment:
+    # - RELAY
+    # - ENCRYPTED_ONLY
+    # - KEY_PUB
+    # - KEY_PRIV
+    #network_mode: "host"
+    volumes:
+      - hbbs_config:/root
+    ports:
+      #- 21114:21114 - only for pro web interface
+      - 21115:21115
+      - 21116:21116
+      - 21116:21116/udp
+      - 21118:21118
+    networks:
+      - rust
+    depends_on:
+      - hbbr
+    restart: unless-stopped
+
+  hbbr:
+    container_name: hbbr
+    image: rustdesk/rustdesk-server:latest
+    command: hbbr
+    env_file:
+      - stack.env
+    # environment:
+    # - RELAY
+    # - KEY_PUB
+    # - KEY_PRIV
+    # - ENCRYPTED_ONLY
+    # - RUST_LOG
+    # - TOTAL_BANDWIDTH
+    ports:
+      - 21117:21117
+      - 21119:21119
+    volumes:
+      - hbbr_config:/root
+    networks:
+      - rust
+    restart: unless-stopped
+
+networks:
+  rust:
+    external: true #joins already existing network
+
+volumes:
+  hbbs_config:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /pool_raid0/docker/config/rust/hbbs
+  hbbr_config:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /pool_raid0/docker/config/rust/hbbr
