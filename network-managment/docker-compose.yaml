@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   unifi-network-database:
-    image: docker.io/mongo:7.0.18
+    image: docker.io/mongo:7.0
     container_name: unifi-network-database
     environment:
       - PGID=1000
