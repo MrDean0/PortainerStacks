@@ -1,21 +1,41 @@
 version: "3.8"
 services:
-  unifi-controller:
-    image: lscr.io/linuxserver/unifi-controller:latest
-    container_name: unifi-controller
-    env_file:
-    - stack.env
+  unifi-network-database:
+    image: docker.io/mongo:7.0
+    container_name: unifi-network-database
     environment:
-      - MEM_LIMIT=512 #optional
-      - MEM_STARTUP=512 #optional
+      - PGID=1000
+      - PUID=1000
+    env_file:
+      - stack.env
+    volumes:
+      - mongo_database:/data/db
+      - /data/db/init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh:ro
+    networks:
+      - network-managment_default
+    ports:
+      - 27017:27017
+    restart: unless-stopped
+  unifi-network-application:
+    image: lscr.io/linuxserver/unifi-network-application:9.0.114-ls85
+    container_name: unifi-network-application
+    env_file:
+      - stack.env
     volumes:
       - unifi_config:/config
     ports:
-      - 8080:8080
+      - 8443:8443
     networks:
       - network-managment_default
+    # ports:
+    #   - 8443:8443
+    #   - 3478:3478/udp
+    #   - 10001:10001/udp
+    #   - 8080:8080
     restart: unless-stopped
-    
+    depends_on:
+     - unifi-network-database
+
   uptime-kuma:
     image: louislam/uptime-kuma:latest
     container_name: kuma
@@ -41,7 +61,14 @@ volumes:
     driver_opts:
       o: bind
       type: none
-      device: /pool_raid0/docker/config/unifi/config
+      device: /pool_raid0/docker/config/unifi/controller
+    
+  mongo_database:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /pool_raid0/docker/config/unifi/database
 
   kuma_config:
     driver: local
