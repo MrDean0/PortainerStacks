@@ -3,14 +3,14 @@ services:
     container_name: "checkmk"
     image: "checkmk/check-mk-raw:2.4.0-latest"
     env_file:
-      - stack.env
+    - stack.env
     # environment:
     #   - CMK_PASSWORD={mypassword}
     #   - TZ={$TZ}
     volumes:
-      - checkmk_config:/omd/sites
+    - checkmk_config:/omd/sites
     tmpfs:
-      - /opt/omd/sites/cmk/tmp:uid=${PUID},gid=${PGID}
+    - /opt/omd/sites/cmk/tmp:uid=${PUID},gid=${PGID}
     #ports:
     #- 8080:5000 #port 80
     #- 8000:8000 #first site - gratwick
@@ -20,58 +20,55 @@ services:
     container_name: "prometheus"
     image: "prom/prometheus:v3.7.3"
     env_file:
-      - stack.env
+    - stack.env
     volumes:
-      - prometheus_config:/etc/prometheus
+    - prometheus_config:/etc/prometheus
     #ports:
     #- 9090:9090 #HTTP
     restart: always
     networks:
-      - monitoring
+    - monitoring
 
   postgres:
     container_name: postgres
-    image: postgres:15
+    image: "postgres:15"
     env_file:
-      - stack.env
+    - stack.env
+
     restart: always
-    environment:
-      POSTGRES_DB: grafana_db
-      POSTGRES_USER: ${PGDB_USER}
-      POSTGRES_PASSWORD: ${PBDB_USERPW}
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${PGDB_USER} -d ${PBDB_USERPW}"]
-      interval: 10s
-      retries: 5
-      start_period: 30s
-      timeout: 10s
+    # healthcheck:
+    #   test: [ "CMD-SHELL", "pg_isready -U ${PGDB_USER} -d ${PBDB_USERPW}" ]
+    #   interval: 10s
+    #   retries: 5
+    #   start_period: 30s
+    #   timeout: 10s
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+    - postgres_data:/var/lib/postgresql/data
     networks:
-      - monitoring
+    - monitoring
 
   grafana:
     container_name: grafana
-    image: grafana/grafana-enterprise:latest
+    image: "grafana/grafana:12.2"
     env_file:
-      - stack.env
+    - stack.env
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-        restart: true
+    # depends_on:
+    #   postgres:
+    #     condition: service_healthy
+    #     restart: true
     environment:
       GF_DATABASE_TYPE: postgres
       GF_DATABASE_HOST: postgres
-      GF_DATABASE_NAME: grafana_db
-      GF_DATABASE_USER: ${PGDB_USER}
-      GF_DATABASE_PASSWORD: ${PBDB_USERPW}
+      GF_DATABASE_NAME: ${POSTGRES_DB}
+      GF_DATABASE_USER: ${POSTGRES_USER}
+      GF_DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
     # ports:
     # - '3000:3000' #HTTP
     volumes:
-      - grafana_config:/var/lib/grafana
+    - grafana_config:/var/lib/grafana
     networks:
-      - monitoring
+    - monitoring
 
 networks:
   monitoring:
@@ -83,22 +80,22 @@ volumes:
     driver_opts:
       o: bind
       type: none
-      device: /pool_raid0/docker/config/checkmk
+      device: /pool_raid0/docker/config/monitoring/checkmk
   prometheus_config:
     driver: local
     driver_opts:
       o: bind
       type: none
-      device: /pool_raid0/docker/config/prometheus
+      device: /pool_raid0/docker/config/monitoring/prometheus
   grafana_config:
     driver: local
     driver_opts:
       o: bind
       type: none
-      device: /pool_raid0/docker/config/grafana
+      device: /pool_raid0/docker/config/monitoring/grafana
   postgres_data:
     driver: local
     driver_opts:
       o: bind
       type: none
-      device: /pool_raid0/docker/data/grafana/postgres
+      device: /pool_raid0/docker/data/monitoring/postgres
