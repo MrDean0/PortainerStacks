@@ -1,0 +1,104 @@
+services:
+  checkmk:
+    container_name: "checkmk"
+    image: "checkmk/check-mk-raw:2.4.0-latest"
+    env_file:
+      - stack.env
+    # environment:
+    #   - CMK_PASSWORD={mypassword}
+    #   - TZ={$TZ}
+    volumes:
+      - checkmk_config:/omd/sites
+    tmpfs:
+      - /opt/omd/sites/cmk/tmp:uid=${PUID},gid=${PGID}
+    #ports:
+    #- 8080:5000 #port 80
+    #- 8000:8000 #first site - gratwick
+    restart: always
+
+  prometheus:
+    container_name: "prometheus"
+    image: "prom/prometheus:v3.7.3"
+    env_file:
+      - stack.env
+    volumes:
+      - prometheus_config:/etc/prometheus
+    #ports:
+    #- 9090:9090 #HTTP
+    restart: always
+    networks:
+      - monitoring
+
+  postgres:
+    container_name: postgres
+    image: postgres:15
+    env_file:
+      - stack.env
+    restart: always
+    environment:
+      POSTGRES_DB: grafana_db
+      POSTGRES_USER: ${PGDB_USER}
+      POSTGRES_PASSWORD: ${PBDB_USERPW}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PGDB_USER} -d ${PBDB_USERPW}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - monitoring
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana-enterprise:latest
+    env_file:
+      - stack.env
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+        restart: true
+    environment:
+      GF_DATABASE_TYPE: postgres
+      GF_DATABASE_HOST: postgres
+      GF_DATABASE_NAME: grafana_db
+      GF_DATABASE_USER: ${PGDB_USER}
+      GF_DATABASE_PASSWORD: ${PBDB_USERPW}
+    # ports:
+    # - '3000:3000' #HTTP
+    volumes:
+      - grafana_config:/var/lib/grafana
+    networks:
+      - monitoring
+
+networks:
+  monitoring:
+    external: true
+
+volumes:
+  checkmk_config:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /pool_raid0/docker/config/checkmk
+  prometheus_config:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /pool_raid0/docker/config/prometheus
+  grafana_config:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /pool_raid0/docker/config/grafana
+  postgres_data:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /pool_raid0/docker/data/grafana/postgres
