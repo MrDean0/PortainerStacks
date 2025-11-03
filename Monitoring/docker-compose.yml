@@ -4,6 +4,7 @@ services:
     image: "checkmk/check-mk-raw:2.4.0-latest"
     env_file:
     - stack.env
+    user: "${PUID}:${GUID}"
     # environment:
     #   - CMK_PASSWORD={mypassword}
     #   - TZ={$TZ}
@@ -21,20 +22,28 @@ services:
     image: "prom/prometheus:v3.7.3"
     env_file:
     - stack.env
+    user: "${PUID}:${GUID}"
     volumes:
     - prometheus_config:/etc/prometheus
+    - prometheus_data:/data
+    command:
+     - '--config.file=/etc/prometheus/prometheus.yml'
+     - '--storage.tsdb.path=/data'
+     - '--storage.tsdb.retention.time=30d'
+     - '--storage.tsdb.retention.size=10GB'
     #ports:
     #- 9090:9090 #HTTP
     restart: always
     networks:
     - monitoring
+    
 
   postgres:
     container_name: postgres
     image: "postgres:15"
     env_file:
     - stack.env
-
+    user: "${PUID}:${GUID}"
     restart: always
     # healthcheck:
     #   test: [ "CMD-SHELL", "pg_isready -U ${PGDB_USER} -d ${PBDB_USERPW}" ]
@@ -52,6 +61,7 @@ services:
     image: "grafana/grafana:12.2"
     env_file:
     - stack.env
+    user: "${PUID}:${GUID}"
     restart: unless-stopped
     # depends_on:
     #   postgres:
@@ -87,6 +97,12 @@ volumes:
       o: bind
       type: none
       device: /pool_raid0/docker/config/monitoring/prometheus
+  prometheus_data:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /pool_raid0/docker/data/monitoring/prometheus
   grafana_config:
     driver: local
     driver_opts:
