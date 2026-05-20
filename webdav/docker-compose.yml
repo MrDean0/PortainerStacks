@@ -1,0 +1,28 @@
+version: "3.9"
+services:
+  nginx_webdav:
+    image: maltokyo/docker-nginx-webdav:latest
+    container_name: webdav
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    #    ports: # enable this if you are not using reverse proxy, otherwise leave commented out
+    #      - "80:80"
+    volumes:
+      - webdav_data:/media/data
+    networks:
+      - webdav
+    env_file:
+      - stack.env
+    user: "${PUID}:${GUID}"
+
+networks:
+  webdav:
+    external: true
+volumes:
+  webdav_data:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /pool_raid0/docker/data/webdav
